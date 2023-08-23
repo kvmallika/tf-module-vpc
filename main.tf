@@ -26,13 +26,20 @@ resource "aws_eip" "ngw" {
   //count = length(lookup(lookup(var.subnets, "public",null),"cidr_block",0))
   count = length(var.subnets["public"].cidr_block)
 
-  vpc = true
-  tags = merge(var.tags, {Name = "${var.env}-NGW"})
+  vpc  = true
+  tags = merge(var.tags, { Name = "${var.env}-NGW" })
 }
+
 resource "aws_nat_gateway" "ngw" {
-  count = length(var.subnets["public"].cidr_block)
+  count         = length(var.subnets["public"].cidr_block)
   allocation_id = aws_eip.ngw[count.index].id
   subnet_id     = module.subnets["public"].subnet_ids[count.index]
 
-  tags = merge(var.tags, {Name = "${var.env}-NGW"})
+  tags = merge(var.tags, { Name = "${var.env}-NGW" })
+}
+resource "aws_route" "igw" {
+  count                  = length(module.subnets["public"].route_table_ids)
+  route_table_id         = module.subnets["public"].route_table_ids[count.index]
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.igw.id
 }
